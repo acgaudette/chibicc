@@ -498,37 +498,51 @@ Token *tokenize(File *file) {
   has_space = false;
 
   while (*p) {
-    // Skip line comments.
+    // Line comments.
     if (startswith(p, "//")) {
+      char *q = p;
       p += 2;
       while (*p != '\n')
         p++;
-      has_space = true;
+
+      cur = cur->next = new_token(_TK_COMMENT_LINE, q, p);
+      has_space = true; // acg: Retain semantics
       continue;
     }
 
-    // Skip block comments.
+    // Block comments.
     if (startswith(p, "/*")) {
+      char *r = p;
       char *q = strstr(p + 2, "*/");
       if (!q)
         error_at(p, "unclosed block comment");
       p = q + 2;
-      has_space = true;
+
+      cur = cur->next = new_token(_TK_COMMENT_BLOCK, r, p);
+      has_space = true; // acg: Retain semantics
       continue;
     }
 
-    // Skip newline.
+    // Newline.
     if (*p == '\n') {
-      p++;
+      char *q = p++;
+      cur = cur->next = new_token(_TK_ENDL, q, p);
+
+      // acg: Retain semantics
       at_bol = true;
       has_space = false;
+
       continue;
     }
 
-    // Skip whitespace characters.
+    // Whitespace characters.
     if (isspace(*p)) {
-      p++;
-      has_space = true;
+      char *q = p++;
+      while (isspace(*p) && *p != '\n')
+        ++p;
+
+      cur = cur->next = new_token(_TK_SPACE, q, p);
+      has_space = true; // acg: Retain semantics
       continue;
     }
 

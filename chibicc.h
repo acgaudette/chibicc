@@ -57,6 +57,11 @@ typedef enum {
   TK_NUM,     // Numeric literals
   TK_PP_NUM,  // Preprocessing numbers
   TK_EOF,     // End-of-file markers
+  _TK_COUNT,
+  _TK_SPACE,
+  _TK_ENDL,
+  _TK_COMMENT_LINE,
+  _TK_COMMENT_BLOCK,
 } TokenKind;
 
 typedef struct {
