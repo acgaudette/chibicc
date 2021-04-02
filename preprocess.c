@@ -366,6 +366,8 @@ static MacroParam *read_macro_params(Token **rest, Token *tok, char **va_args_na
 }
 
 static void read_macro_definition(Token **rest, Token *tok) {
+  while (tok->kind > _TK_COUNT)
+    tok = tok->next;
   if (tok->kind != TK_IDENT)
     error_tok(tok, "macro name must be an identifier");
   char *name = strndup(tok->loc, tok->len);
