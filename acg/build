@@ -1,0 +1,4 @@
+#!/bin/sh
+
+clear
+pushd . && cd .. && make -j8 && popd

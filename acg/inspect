@@ -1,0 +1,4 @@
+#!/bin/sh
+
+./build
+gdb --args ../chibicc -E -S main.c -cc1 -cc1-input main.c
