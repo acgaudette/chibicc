@@ -498,7 +498,14 @@ Token *tokenize(File *file) {
   has_space = false;
 
   while (*p) {
-    // Line comments.
+    // Backslash
+    if ('\\' == *p) {
+      char *q = p++;
+      cur = cur->next = new_token(_TK_BSLASH, q, p);
+      continue;
+    }
+
+    // Line comments
     if (startswith(p, "//")) {
       char *q = p;
       p += 2;
@@ -510,7 +517,7 @@ Token *tokenize(File *file) {
       continue;
     }
 
-    // Block comments.
+    // Block comments
     if (startswith(p, "/*")) {
       char *r = p;
       char *q = strstr(p + 2, "*/");
@@ -523,7 +530,7 @@ Token *tokenize(File *file) {
       continue;
     }
 
-    // Newline.
+    // Newline
     if (*p == '\n') {
       char *q = p++;
       cur = cur->next = new_token(_TK_ENDL, q, p);
@@ -535,7 +542,7 @@ Token *tokenize(File *file) {
       continue;
     }
 
-    // Whitespace characters.
+    // Whitespace characters
     if (isspace(*p)) {
       char *q = p++;
       while (isspace(*p) && *p != '\n')
@@ -802,7 +809,7 @@ Token *tokenize_file(char *path) {
     p += 3;
 
   canonicalize_newline(p);
-  remove_backslash_newline(p);
+  /* remove_backslash_newline(p); */
   convert_universal_chars(p);
 
   // Save the filename for assembler .file directive.

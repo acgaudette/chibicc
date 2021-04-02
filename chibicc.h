@@ -62,6 +62,7 @@ typedef enum {
   _TK_ENDL,
   _TK_COMMENT_LINE,
   _TK_COMMENT_BLOCK,
+  _TK_BSLASH
 } TokenKind;
 
 typedef struct {
