@@ -540,7 +540,7 @@ static void cc1(void) {
   // Tokenize and parse.
   Token *tok2 = must_tokenize_file(base_file);
   tok = append_tokens(tok, tok2);
-  tok = preprocess(tok);
+  /* tok = preprocess(tok); */
 
   // If -M or -MD are given, print file dependencies.
   if (opt_M || opt_MD) {
