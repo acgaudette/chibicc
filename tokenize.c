@@ -12,6 +12,9 @@ static bool at_bol;
 // True if the current position follows a space character
 static bool has_space;
 
+// Previous non-lexical token while chaining lexical tokens
+static Token *prev;
+
 // Reports an error and exit.
 void error(char *fmt, ...) {
   va_list ap;
@@ -107,7 +110,10 @@ static Token *new_token(TokenKind kind, char *start, char *end) {
   tok->at_bol = at_bol;
   tok->has_space = has_space;
 
-  at_bol = has_space = false;
+  // TODO: consider
+  if (kind <= TK_EOF)
+    at_bol = has_space = false;
+
   return tok;
 }
 
@@ -226,6 +232,13 @@ static int read_escaped_char(char **new_pos, char *p) {
   case 'r': return '\r';
   // [GNU] \e for the ASCII escape character is a GNU C extension.
   case 'e': return 27;
+  // TODO: what does this do?
+  case '"':
+  case '?':
+  case '\'':
+  case '\\':
+  // GCC emits a warning and sets unrecognized escape characters to their own
+  // values. There is a test case that depends on this leniency.
   default: return *p;
   }
 }
@@ -496,15 +509,17 @@ Token *tokenize(File *file) {
 
   at_bol = true;
   has_space = false;
+  prev = NULL;
 
   while (*p) {
+/*
     // Backslash
     if ('\\' == *p) {
       char *q = p++;
       cur = cur->next = new_token(_TK_BSLASH, q, p);
       continue;
     }
-
+*/
     // Line comments
     if (startswith(p, "//")) {
       char *q = p;
@@ -512,33 +527,33 @@ Token *tokenize(File *file) {
       while (*p != '\n')
         p++;
 
-      cur = cur->next = new_token(_TK_COMMENT_LINE, q, p);
-      has_space = true; // acg: Retain semantics
+      if (!prev) prev = cur;
+      cur = cur->lex = new_token(TK_COMMENT_LINE, q, p);
+      has_space = true;
       continue;
     }
 
     // Block comments
     if (startswith(p, "/*")) {
-      char *r = p;
       char *q = strstr(p + 2, "*/");
       if (!q)
         error_at(p, "unclosed block comment");
+
+      if (!prev) prev = cur;
+      cur = cur->next = new_token(TK_COMMENT_BLOCK, p, q + 2);
       p = q + 2;
 
-      cur = cur->next = new_token(_TK_COMMENT_BLOCK, r, p);
-      has_space = true; // acg: Retain semantics
+      has_space = true;
       continue;
     }
 
     // Newline
     if (*p == '\n') {
+      if (!prev) prev = cur;
       char *q = p++;
-      cur = cur->next = new_token(_TK_ENDL, q, p);
-
-      // acg: Retain semantics
+      cur = cur->lex = new_token(TK_NEWLINE, q, p);
       at_bol = true;
       has_space = false;
-
       continue;
     }
 
@@ -548,8 +563,9 @@ Token *tokenize(File *file) {
       while (isspace(*p) && *p != '\n')
         ++p;
 
-      cur = cur->next = new_token(_TK_SPACE, q, p);
-      has_space = true; // acg: Retain semantics
+      if (!prev) prev = cur;
+      cur = cur->lex = new_token(TK_SPACE, q, p);
+      has_space = true;
       continue;
     }
 
@@ -565,12 +581,14 @@ Token *tokenize(File *file) {
           break;
       }
       cur = cur->next = new_token(TK_PP_NUM, q, p);
+      if (prev) { prev->next = cur; prev = NULL; }
       continue;
     }
 
     // String literal
     if (*p == '"') {
       cur = cur->next = read_string_literal(p, p);
+      if (prev) { prev->next = cur; prev = NULL; }
       p += cur->len;
       continue;
     }
@@ -578,6 +596,7 @@ Token *tokenize(File *file) {
     // UTF-8 string literal
     if (startswith(p, "u8\"")) {
       cur = cur->next = read_string_literal(p, p + 2);
+      if (prev) { prev->next = cur; prev = NULL; }
       p += cur->len;
       continue;
     }
@@ -585,6 +604,7 @@ Token *tokenize(File *file) {
     // UTF-16 string literal
     if (startswith(p, "u\"")) {
       cur = cur->next = read_utf16_string_literal(p, p + 1);
+      if (prev) { prev->next = cur; prev = NULL; }
       p += cur->len;
       continue;
     }
@@ -592,6 +612,7 @@ Token *tokenize(File *file) {
     // Wide string literal
     if (startswith(p, "L\"")) {
       cur = cur->next = read_utf32_string_literal(p, p + 1, ty_int);
+      if (prev) { prev->next = cur; prev = NULL; }
       p += cur->len;
       continue;
     }
@@ -599,6 +620,7 @@ Token *tokenize(File *file) {
     // UTF-32 string literal
     if (startswith(p, "U\"")) {
       cur = cur->next = read_utf32_string_literal(p, p + 1, ty_uint);
+      if (prev) { prev->next = cur; prev = NULL; }
       p += cur->len;
       continue;
     }
@@ -606,6 +628,7 @@ Token *tokenize(File *file) {
     // Character literal
     if (*p == '\'') {
       cur = cur->next = read_char_literal(p, p, ty_int);
+      if (prev) { prev->next = cur; prev = NULL; }
       cur->val = (char)cur->val;
       p += cur->len;
       continue;
@@ -614,6 +637,7 @@ Token *tokenize(File *file) {
     // UTF-16 character literal
     if (startswith(p, "u'")) {
       cur = cur->next = read_char_literal(p, p + 1, ty_ushort);
+      if (prev) { prev->next = cur; prev = NULL; }
       cur->val &= 0xffff;
       p += cur->len;
       continue;
@@ -622,6 +646,7 @@ Token *tokenize(File *file) {
     // Wide character literal
     if (startswith(p, "L'")) {
       cur = cur->next = read_char_literal(p, p + 1, ty_int);
+      if (prev) { prev->next = cur; prev = NULL; }
       p += cur->len;
       continue;
     }
@@ -629,6 +654,7 @@ Token *tokenize(File *file) {
     // UTF-32 character literal
     if (startswith(p, "U'")) {
       cur = cur->next = read_char_literal(p, p + 1, ty_uint);
+      if (prev) { prev->next = cur; prev = NULL; }
       p += cur->len;
       continue;
     }
@@ -637,6 +663,7 @@ Token *tokenize(File *file) {
     int ident_len = read_ident(p);
     if (ident_len) {
       cur = cur->next = new_token(TK_IDENT, p, p + ident_len);
+      if (prev) { prev->next = cur; prev = NULL; }
       p += cur->len;
       continue;
     }
@@ -645,6 +672,7 @@ Token *tokenize(File *file) {
     int punct_len = read_punct(p);
     if (punct_len) {
       cur = cur->next = new_token(TK_PUNCT, p, p + punct_len);
+      if (prev) { prev->next = cur; prev = NULL; }
       p += cur->len;
       continue;
     }
@@ -653,6 +681,7 @@ Token *tokenize(File *file) {
   }
 
   cur = cur->next = new_token(TK_EOF, p, p);
+  if (prev) { prev->next = cur; prev = NULL; }
   add_line_numbers(head.next);
   return head.next;
 }
@@ -708,18 +737,33 @@ File *new_file(char *name, int file_no, char *contents) {
   return file;
 }
 
+static struct line_ending { int i; bool r, n; } *line_endings;
+static size_t line_endings_count = 0;
+static size_t line_endings_alloc = 0;
+
+static void line_ending_add(int i, bool r, bool n) {
+  if (line_endings_count == line_endings_alloc) {
+    line_endings_alloc += 100;
+    line_endings = realloc(line_endings, sizeof(*line_endings) * line_endings_alloc);
+  }
+  line_endings[line_endings_count++] = (struct line_ending) { i, r, n };
+}
+
 // Replaces \r or \r\n with \n.
 static void canonicalize_newline(char *p) {
   int i = 0, j = 0;
 
   while (p[i]) {
     if (p[i] == '\r' && p[i + 1] == '\n') {
+      line_ending_add(i, true, true);
       i += 2;
       p[j++] = '\n';
     } else if (p[i] == '\r') {
+      line_ending_add(i, true, false);
       i++;
       p[j++] = '\n';
     } else {
+      line_ending_add(i, false, true);
       p[j++] = p[i++];
     }
   }
@@ -727,10 +771,32 @@ static void canonicalize_newline(char *p) {
   p[j] = '\0';
 }
 
+static int   *line_splices;
+static size_t line_splices_count;
+static size_t line_splices_alloc;
+
+static void line_splice_add(int i) {
+  if (line_splices_count == line_splices_alloc) {
+    line_splices_alloc += 100;
+    line_splices = realloc(line_splices, sizeof(*line_splices) * line_splices_alloc);
+  }
+  line_splices[line_splices_count++] = i;
+}
+
 // Removes backslashes followed by a newline.
 static void remove_backslash_newline(char *p) {
   int i = 0, j = 0;
 
+  // “The line number of the current source line is one greater than the
+  // number of new-line characters read or introduced in translation
+  // phase 1 (5.1.1.2) while processing the source file to the current
+  // token.” (ISO/IEC 9899:2017, 6.10.4, §2)
+  //
+  // The standard does not specify if the line number is of the current
+  // logical or physical source line. We choose logical, count the number
+  // of physical source line splices in the logical source line, then add
+  // that many newlines at the end of the logical source line.
+  //
   // We want to keep the number of newline characters so that
   // the logical line number matches the physical one.
   // This counter maintain the number of newlines we have removed.
@@ -738,6 +804,7 @@ static void remove_backslash_newline(char *p) {
 
   while (p[i]) {
     if (p[i] == '\\' && p[i + 1] == '\n') {
+      line_splice_add(i);
       i += 2;
       n++;
     } else if (p[i] == '\n') {

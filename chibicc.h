@@ -57,12 +57,13 @@ typedef enum {
   TK_NUM,     // Numeric literals
   TK_PP_NUM,  // Preprocessing numbers
   TK_EOF,     // End-of-file markers
-  _TK_COUNT,
-  _TK_SPACE,
-  _TK_ENDL,
-  _TK_COMMENT_LINE,
-  _TK_COMMENT_BLOCK,
-  _TK_BSLASH
+
+  // Lexical tokens
+  TK_COMMENT_LINE,
+  TK_COMMENT_BLOCK,
+  TK_NEWLINE, // newline
+  TK_SPACE,   // whitespace sequence
+  TK_BSLASH,  // FIXME: forgot if we're using these
 } TokenKind;
 
 typedef struct {
@@ -80,6 +81,7 @@ typedef struct Token Token;
 struct Token {
   TokenKind kind;   // Token kind
   Token *next;      // Next token
+  Token *lex;       // Next lexical token
   int64_t val;      // If kind is TK_NUM, its value
   long double fval; // If kind is TK_NUM, its value
   char *loc;        // Token location

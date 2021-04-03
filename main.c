@@ -434,18 +434,17 @@ static void print_tokens(Token *tok) {
   FILE *out = open_file(opt_o ? opt_o : "-");
 
   int line = 1;
-  for (; tok->kind != TK_EOF; tok = tok->next) {
-/*
-    if (line > 1 && tok->at_bol)
-      fprintf(out, "\n");
-    if (tok->has_space && !tok->at_bol)
-      fprintf(out, " ");
-*/
-    if (tok->kind == _TK_ENDL)
-      fprintf(out, "ENDL\n");
+  while (tok->kind != TK_EOF) {
+    if (tok->kind == TK_NEWLINE)
+      fprintf(out, "NEWLINE\n");
     else
       fprintf(out, "\t%d\t\"%.*s\"\n", tok->line_no, tok->len, tok->loc);
     line++;
+    if (tok->lex)
+      tok = tok->lex;
+    else
+      tok = tok->next;
+    // breaks partway due to preprocessing. works well when preprocessing disabled
   }
   fprintf(out, "\n");
 }
@@ -513,6 +512,9 @@ static Token *append_tokens(Token *tok1, Token *tok2) {
   Token *t = tok1;
   while (t->next->kind != TK_EOF)
     t = t->next;
+  t->next = tok2;
+  while (t->lex)
+    t = t->lex;
   t->next = tok2;
   return tok1;
 }
