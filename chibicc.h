@@ -113,6 +113,8 @@ File *new_file(char *name, int file_no, char *contents);
 Token *tokenize_string_literal(Token *tok, Type *basety);
 Token *tokenize(File *file);
 Token *tokenize_file(char *filename);
+void print_token(Token, FILE*);
+void print_tokens_from_to(Token*, Token*, FILE*);
 
 #define unreachable() \
   error("internal error at %s:%d", __FILE__, __LINE__)

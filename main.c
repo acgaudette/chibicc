@@ -429,6 +429,28 @@ static void run_cc1(int argc, char **argv, char *input, char *output) {
   run_subprocess(args);
 }
 
+void print_token(Token tok, FILE *out) {
+  fprintf(out, "\t%d\t\"%.*s\"\n", tok.line_no, tok.len, tok.loc);
+}
+
+void print_tokens_from_to(Token *from, Token *to, FILE *out) {
+  while (from->kind != TK_EOF) {
+    if (from->kind == TK_NEWLINE)
+      fprintf(out, "NEWLINE\n");
+    else
+      fprintf(out, "\t%d\t\"%.*s\"\n", from->line_no, from->len, from->loc);
+
+    if (from == to)
+      break;
+    else if (from->lex)
+      from = from->lex;
+    else
+      from = from->next;
+  }
+
+  fprintf(out, "\n");
+}
+
 // Print tokens to stdout. Used for -E.
 static void print_tokens(Token *tok) {
   FILE *out = open_file(opt_o ? opt_o : "-");
