@@ -423,6 +423,7 @@ void add_type(Node *node);
 //
 
 void codegen(Obj *prog, FILE *out);
+void dump_ast(Obj *prog, FILE *out);
 int align_to(int n, int align);
 
 //

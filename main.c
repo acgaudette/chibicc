@@ -10,6 +10,7 @@ bool opt_fpic;
 
 static FileType opt_x;
 static StringArray opt_include;
+static bool opt_AST;
 static bool opt_E;
 static bool opt_M;
 static bool opt_MD;
@@ -167,6 +168,11 @@ static void parse_args(int argc, char **argv) {
 
     if (!strcmp(argv[i], "-E")) {
       opt_E = true;
+      continue;
+    }
+
+    if (!strcmp(argv[i], "-AST")) {
+      opt_AST = true;
       continue;
     }
 
@@ -580,6 +586,12 @@ static void cc1(void) {
   }
 
   Obj *prog = parse(tok);
+
+  if (opt_AST) {
+    FILE *out = open_file(opt_o ? opt_o : "-");
+    dump_ast(prog, out);
+    return;
+  }
 
   // Open a temporary output buffer.
   char *buf;

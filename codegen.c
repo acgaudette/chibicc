@@ -1593,3 +1593,13 @@ void codegen(Obj *prog, FILE *out) {
   emit_data(prog);
   emit_text(prog);
 }
+
+void dump_ast(Obj *prog, FILE *out) {
+  Obj *this = prog;
+
+  while (this) {
+    fprintf(out, "[ struct Obj* ]\n");
+    print_tokens_from_to(this->start, this->end, out);
+    this = this->next;
+  }
+}
