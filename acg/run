@@ -1,4 +1,5 @@
 #!/bin/sh
 
 ./build && clear || exit 1
-../chibicc -E -S main.c
+# ../chibicc -E -S main.c
+  ../chibicc -AST -S main.c
