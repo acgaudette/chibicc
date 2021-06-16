@@ -514,7 +514,14 @@ Token *tokenize(File *file) {
   has_space = false;
   prev = NULL;
 
+  Token *prev_lex = NULL;
+
   while (*p) {
+    if (prev_lex && prev_lex->kind > TK_EOF) {
+      cur->prev_lex = prev_lex;
+    }
+
+    prev_lex = cur;
 /*
     // Backslash
     if ('\\' == *p) {

@@ -82,6 +82,7 @@ struct Token {
   TokenKind kind;   // Token kind
   Token *next;      // Next token
   Token *lex;       // Next lexical token
+  Token *prev_lex;  // Previous lexical token
   int64_t val;      // If kind is TK_NUM, its value
   long double fval; // If kind is TK_NUM, its value
   char *loc;        // Token location
