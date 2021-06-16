@@ -154,7 +154,7 @@ static Node *primary(Token **rest, Token *tok);
 static Token *parse_typedef(Token *tok, Type *basety);
 static bool is_function(Token *tok);
 static Token *function(Token *tok, Type *basety, VarAttr *attr);
-static Token *global_variable(Token *tok, Type *basety, VarAttr *attr);
+static Token *global_variable(Token *tok, Type *basety, VarAttr *attr, Token*);
 
 static int align_down(int n, int align) {
   return align_to(n - align + 1, align);
@@ -1783,7 +1783,7 @@ static Node *compound_stmt(Token **rest, Token *tok) {
       }
 
       if (attr.is_extern) {
-        tok = global_variable(tok, basety, &attr);
+        tok = global_variable(tok, basety, &attr, tok); // FIXME
         continue;
       }
 
@@ -3261,7 +3261,7 @@ static Token *function(Token *tok, Type *basety, VarAttr *attr) {
   return tok;
 }
 
-static Token *global_variable(Token *tok, Type *basety, VarAttr *attr) {
+static Token *global_variable(Token *tok, Type *basety, VarAttr *attr, Token *start) {
   bool first = true;
 
   while (!consume(&tok, tok, ";")) {
@@ -3284,7 +3284,19 @@ static Token *global_variable(Token *tok, Type *basety, VarAttr *attr) {
       gvar_initializer(&tok, tok->next, var);
     else if (!attr->is_extern && !attr->is_tls)
       var->is_tentative = true;
+
+    var->start = start;
+    while (var->start->prev_lex) {
+      var->start = var->start->prev_lex;
+    }
+
+    var->end = tok;
+    while (var->end->lex && var->end->lex->line_no == var->end->line_no) {
+      var->end = var->end->lex;
+      var->end->prev_lex = NULL;
+    }
   }
+
   return tok;
 }
 
@@ -3340,6 +3352,7 @@ Obj *parse(Token *tok) {
 
   while (tok->kind != TK_EOF) {
     VarAttr attr = {};
+    Token *start = tok;
     Type *basety = declspec(&tok, tok, &attr);
 
     // Typedef
@@ -3355,7 +3368,7 @@ Obj *parse(Token *tok) {
     }
 
     // Global variable
-    tok = global_variable(tok, basety, &attr);
+    tok = global_variable(tok, basety, &attr, start);
   }
 
   for (Obj *var = globals; var; var = var->next)

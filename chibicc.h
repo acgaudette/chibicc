@@ -141,6 +141,9 @@ struct Obj {
   bool is_local; // local or global/function
   int align;     // alignment
 
+  // Glorious API
+  Token *start, *end;
+
   // Local variable
   int offset;
 
