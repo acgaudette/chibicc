@@ -482,7 +482,10 @@ static void add_line_numbers(Token *tok) {
   do {
     if (p == tok->loc) {
       tok->line_no = n;
-      tok = tok->next;
+      if (tok->lex)
+        tok = tok->lex;
+      else
+        tok = tok->next;
     }
     if (*p == '\n')
       n++;
