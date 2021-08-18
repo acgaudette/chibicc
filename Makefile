@@ -1,4 +1,4 @@
-CFLAGS=-std=c11 -g -fno-common -Wall -Wno-switch
+CFLAGS=-fPIC -std=c11 -g -fno-common -Wall -Wno-switch
 
 SRCS=$(wildcard *.c)
 OBJS=$(SRCS:.c=.o)
@@ -48,3 +48,8 @@ clean:
 	find * -type f '(' -name '*~' -o -name '*.o' ')' -exec rm {} ';'
 
 .PHONY: test clean test-stage2
+
+# Library
+
+libchibicc.so: $(OBJS)
+	clang $(CFLAGS) -o $@ $^ -shared
