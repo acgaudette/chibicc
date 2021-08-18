@@ -830,3 +830,32 @@ int main(int argc, char **argv) {
     run_linker(&ld_args, opt_o ? opt_o : "a.out");
   return 0;
 }
+
+void chibi_parse(const char *prefix, const char *path)
+{
+  atexit(cleanup);
+  init_macros();
+
+  const int argc = 9;
+  char **argv = malloc(argc * sizeof(char*));
+  char *output = replace_extn(path, ".s");
+
+  size_t len_pfx = strlen(prefix);
+  size_t len = len_pfx + strlen("chibicc") + 1;
+  *argv = malloc(len);
+  strcpy(strcpy(*argv, prefix) + len_pfx, "chibicc");
+
+  argv[1] = "-AST";
+  argv[2] = "-S";
+  argv[3] = path;
+
+  argv[4] = "-cc1";
+  argv[5] = "-cc1-input";
+  argv[6] = path;
+  argv[7] = "-cc1-output";
+  argv[8] = output;
+
+  parse_args(argc, argv);
+  add_default_include_paths(*argv);
+  cc1();
+}

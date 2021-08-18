@@ -85,7 +85,7 @@ struct InitDesg {
 static Obj *locals;
 
 // Likewise, global variables are accumulated to this list.
-static Obj *globals;
+Obj *globals;
 
 static Scope *scope = &(Scope){};
 
